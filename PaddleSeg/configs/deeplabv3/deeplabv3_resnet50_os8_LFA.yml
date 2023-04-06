@@ -1,0 +1,46 @@
+_base_: '../_base_/cityscapes.yml'
+
+batch_size: 4
+iters: 1000
+
+train_dataset:
+  type: Dataset
+  dataset_root: data/LFA
+  train_path: data/LFA/train.txt
+  num_classes: 2
+  mode: train
+  transforms:
+    - type: ResizeStepScaling
+      min_scale_factor: 0.5
+      max_scale_factor: 2.0
+      scale_step_size: 0.25
+    - type: RandomPaddingCrop
+      crop_size: [1024, 512]
+    - type: RandomHorizontalFlip
+    - type: RandomDistort
+      brightness_range: 0.5
+      contrast_range: 0.5
+      saturation_range: 0.5
+    - type: Normalize
+
+val_dataset:
+  type: Dataset
+  dataset_root: data/LFA
+  val_path: data/LFA/val.txt
+  num_classes: 2
+  mode: val
+  transforms:
+    - type: Normalize
+
+model:
+  type: DeepLabV3
+  backbone:
+    type: ResNet50_vd
+    output_stride: 8
+    multi_grid: [1, 2, 4]
+    pretrained: https://bj.bcebos.com/paddleseg/dygraph/resnet50_vd_ssld_v2.tar.gz
+  backbone_indices: [3]
+  aspp_ratios: [1, 12, 24, 36]
+  aspp_out_channels: 256
+  align_corners: False
+  pretrained: null

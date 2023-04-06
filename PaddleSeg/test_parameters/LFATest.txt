@@ -1,0 +1,3 @@
+Test Name: LFATest
+Model Type: inverse
+Parameters: [11.91541376  1.58341718 -2.9797188 ]
