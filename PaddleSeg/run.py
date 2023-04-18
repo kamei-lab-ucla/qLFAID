@@ -5,33 +5,46 @@ import numpy as np
 import time
 import deploy.python.infer as infer
 
-output_file = 'paramiko.org'
+output_file = 'paramiko.org' #text file to store output from commands
 
 local_dir = r"pi_files"
 
-# x = [3.02857431,  0.23344494, -0.69082306]
+ip_add = 'kameipi.local' #adjust based on your Raspberry Pi's name
 
-x = [5.20623612, -0.71608794, -0.90561461]
+x = [5.20623612, -0.71608794, -0.90561461] # parameters from calibration curve
 
+#additional parameters from calibration curve
 logCoef = -1.97824053
 
 logInt = 4.1242898
 
-def inv(theta, x):
+def exponen(theta, x): #exponential
+    return theta[0]*np.exp(theta[1]*x)+theta[2]
+
+def log(theta, x): #logarithmic
+    return theta[0]*np.log(x + theta[1]) + theta[2]
+
+def inv(theta, x): #inverse
     return (theta[0]/(x+theta[1])) + theta[2]
 
-def exponen(theta, x):
-    return theta[0]*np.exp(theta[1]*x)+theta[2]
+def poly(theta, x, deg): #polynomial
+    out = 0
+    for i in range(deg):
+        out += theta[i]*(x**(i))
+    return out
+
+def lin(theta,x): #linear
+    return theta[0]*x + theta[1]
 
 def logistic(x, coef, intercept):
     inp = x * coef + intercept
     return 1.0 / (1 + np.exp(-inp))
  
  
-def paramiko_GKG(hostname, command):
+def getImages(hostname, command):
     print('running')
     try:
-        local_dir = r"pi_files"
+        local_dir = r"pi_files" #local directory on computer to contain images
         port = '22'
          
         # created client using paramiko
@@ -44,22 +57,19 @@ def paramiko_GKG(hostname, command):
          
         # connecting paramiko using host
         # name and password
-        client.connect(hostname, port=22, username='kameiraspi',
-                       password='kameiBestCapstone')
+        client.connect(hostname, port=22, username='',
+                       password='')
          
         # below line command will actually
         # execute in your remote machine
-        # (stdin, stdout, stderr) = client.exec_command(command)
         sleeptime = 0.001
         outdata, errdata = '', ''
         ssh_transp = client.get_transport()
         chan = ssh_transp.open_session()
-        # chan.settimeout(3 * 60 * 60)
         chan.setblocking(0)
         chan.exec_command(command)
         while True:  # monitoring process
             # Reading from output streams
-            # time.sleep(120)
             while chan.recv_ready():
                 outdata += str(chan.recv(1000).decode('utf-8').strip())
             while chan.recv_stderr_ready():
@@ -69,24 +79,18 @@ def paramiko_GKG(hostname, command):
             time.sleep(sleeptime)
         retcode = chan.recv_exit_status()
          
-        # redirecting all the output in cmd_output
-        # variable
-        # cmd_output = stdout.read().decode('utf-8').strip()
-        # print('log printing: ', cmd_output)
         cmd_output = outdata
         print(cmd_output)
 
-
-
         ftp_client=client.open_sftp()
-        remote_dir = cmd_output
+        remote_dir = cmd_output #get directory 
 
         dir = os.path.basename(os.path.split(remote_dir)[0])
         local_dir = os.path.join(local_dir, dir)
         if not os.path.exists(local_dir):
             os.mkdir(local_dir)
         
-
+        # save files to local directory
         for filename in ftp_client.listdir(remote_dir):
             ftp_client.get(remote_dir+filename, os.path.join(local_dir, filename))
         ftp_client.close()
@@ -102,7 +106,7 @@ def paramiko_GKG(hostname, command):
         client.close()
  
 
-def paramiko_Gen(hostname, command):
+def outputAudio(hostname, command):
     print('running')
     try:
         local_dir = r"pi_files"
@@ -118,22 +122,19 @@ def paramiko_Gen(hostname, command):
          
         # connecting paramiko using host
         # name and password
-        client.connect(hostname, port=22, username='kameiraspi',
-                       password='kameiBestCapstone')
+        client.connect(hostname, port=22, username='',
+                       password='')
          
         # below line command will actually
         # execute in your remote machine
-        # (stdin, stdout, stderr) = client.exec_command(command)
         sleeptime = 0.001
         outdata, errdata = '', ''
         ssh_transp = client.get_transport()
         chan = ssh_transp.open_session()
-        # chan.settimeout(3 * 60 * 60)
         chan.setblocking(0)
         chan.exec_command(command)
         while True:  # monitoring process
             # Reading from output streams
-            # time.sleep(120)
             while chan.recv_ready():
                 outdata += str(chan.recv(1000).decode('utf-8').strip())
             while chan.recv_stderr_ready():
@@ -153,34 +154,23 @@ def paramiko_Gen(hostname, command):
         client.close()
 
 
-# out = paramiko_GKG('164.67.191.144', 'python /home/kameiraspi/Desktop/my_py_files/scanOutput.py')
-out = paramiko_GKG('kameipi.local', 'python /home/kameiraspi/Desktop/my_py_files/scanOutput.py')
-
-# out = r"pi_files\Positions"
+out = getImages(ip_add, 'python /home/kameiraspi/Desktop/my_py_files/scanOutput.py')
 
 argString = "--config output/inference_model/deploy.yaml --image_path "+out+" --save_dir output/result/infer"
 
+# run neural network + calculated test line intensity
 args = infer.parse_args(argString.split())
-inten, names = infer.main(args)
+inten, conc = infer.main(args) #inten contains two columns: first contains test line intensity, and the second contains the area of the cropped detection zone
 
-# biomarker = np.zeros(len(inten))
-
-# biomarker = exponen(x, inten)
-
-# for i in range(len(inten)):
-#     biomarker[i] = exponen(x, inten[i])
-
-# print(names)
-# print(inten)
-# print(biomarker)
-
+# sort intensities based on area of cropped detection zone
 inten[inten[:,1].argsort()]
 
+# intensity of second largest detection zone
 intensity = inten[len(inten)-2,0]
 
 logResult = logistic(intensity, logCoef, logInt)
 
-biomarker = exponen(x,intensity)
+biomarker = exponen(x,intensity) # change function based on calibration curve
 
 if logResult < 0.5:
     result = 'False'
@@ -192,7 +182,4 @@ argString = "--positive " + result + " --conc " + str(np.round(biomarker,3)) + "
 
 argString = 'python /home/kameiraspi/Desktop/my_py_files/output.py ' + argString
 
-# argString = 'python /home/kameiraspi/Desktop/my_py_files/output.py --positive True --conc 2.541 --units nanograms/milliliter'
-
-# paramiko_Gen('164.67.191.144', argString)
-paramiko_Gen('kameipi.local', argString)
+outputAudio(ip_add, argString)

@@ -1,3 +1,7 @@
 Test Name: LFATest
-Model Type: inverse
-Parameters: [11.91541376  1.58341718 -2.9797188 ]
+Model Type: logarithmic
+Parameters: [-1.99975553  0.15149569  1.892299  ]
+Test Name: LFATest
+Model Type: Logistic
+Coefficient: -1.965495442479767
+Intercept: 4.112640931408662
