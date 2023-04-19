@@ -2,6 +2,6 @@ Test Name: LFATest
 Model Type: logarithmic
 Parameters: [-1.99975553  0.15149569  1.892299  ]
 Test Name: LFATest
-Model Type: Logistic
+Model Type: logistic
 Coefficient: -1.965495442479767
 Intercept: 4.112640931408662
