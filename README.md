@@ -1,6 +1,6 @@
 # qLFAID
 
-This repository contains the supplemental code and data for the article "Development of a universal lateral-flow immunoassay reading device with quantitative output for the blind and visually impaired" by Guillermo *et al.*, IEEE Sensors (2023).
+This repository contains the supplemental code and data for the article "Development of a Universal Lateral-Flow Immunoassay Interpretation Device Prototype with Quantitative Output for Blind or Visually Impaired Individuals" by Guillermo *et al.*, IEEE Sensors Journal (https://doi.org/10.1109/JSEN.2023.3306284).
 
 Please look at the **demo.ipynb** file for instructions on how to train a regression model for your dataset of interest.
 
